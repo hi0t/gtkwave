@@ -1,0 +1,101 @@
+name: 'build'
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  msys2:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >
+          autoconf
+          automake
+          base-devel
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-gperf
+          mingw-w64-x86_64-gtk3
+          mingw-w64-x86_64-pkg-config
+        msystem: MINGW64
+
+    - name: Build
+      run: |
+        cd gtkwave3-gtk3
+        ./autogen.sh
+        ./configure --enable-gtk3 CFLAGS="-mwindows" LDFLAGS="-mwindows"
+        make -j
+        make DESTDIR="${GITHUB_WORKSPACE}/dist" install-strip
+    
+    - name: Dist
+      run: |
+        mkdir -p pkg/bin
+        mkdir -p pkg/lib
+        
+        cp dist/mingw64/bin/gtkwave.exe pkg/bin/
+        
+        cp \
+        /mingw64/bin/libatk-1.0-0.dll \
+        /mingw64/bin/libbrotlicommon.dll \
+        /mingw64/bin/libbrotlidec.dll \
+        /mingw64/bin/libbz2-1.dll \
+        /mingw64/bin/libcairo-2.dll \
+        /mingw64/bin/libcairo-gobject-2.dll \
+        /mingw64/bin/libdatrie-1.dll \
+        /mingw64/bin/libdeflate.dll \
+        /mingw64/bin/libepoxy-0.dll \
+        /mingw64/bin/libexpat-1.dll \
+        /mingw64/bin/libffi-8.dll \
+        /mingw64/bin/libfontconfig-1.dll \
+        /mingw64/bin/libfreetype-6.dll \
+        /mingw64/bin/libfribidi-0.dll \
+        /mingw64/bin/libgcc_s_seh-1.dll \
+        /mingw64/bin/libgdk-3-0.dll \
+        /mingw64/bin/libgdk_pixbuf-2.0-0.dll \
+        /mingw64/bin/libgio-2.0-0.dll \
+        /mingw64/bin/libglib-2.0-0.dll \
+        /mingw64/bin/libgmodule-2.0-0.dll \
+        /mingw64/bin/libgobject-2.0-0.dll \
+        /mingw64/bin/libgraphite2.dll \
+        /mingw64/bin/libgtk-3-0.dll \
+        /mingw64/bin/libharfbuzz-0.dll \
+        /mingw64/bin/libiconv-2.dll \
+        /mingw64/bin/libintl-8.dll \
+        /mingw64/bin/libjbig-0.dll \
+        /mingw64/bin/libjpeg-8.dll \
+        /mingw64/bin/libLerc.dll \
+        /mingw64/bin/liblzma-5.dll \
+        /mingw64/bin/libpango-1.0-0.dll \
+        /mingw64/bin/libpangocairo-1.0-0.dll \
+        /mingw64/bin/libpangoft2-1.0-0.dll \
+        /mingw64/bin/libpangowin32-1.0-0.dll \
+        /mingw64/bin/libpcre2-8-0.dll \
+        /mingw64/bin/libpixman-1-0.dll \
+        /mingw64/bin/libpng16-16.dll \
+        /mingw64/bin/libsharpyuv-0.dll \
+        /mingw64/bin/libstdc++-6.dll \
+        /mingw64/bin/libthai-0.dll \
+        /mingw64/bin/libtiff-6.dll \
+        /mingw64/bin/libwebp-7.dll \
+        /mingw64/bin/libwinpthread-1.dll \
+        /mingw64/bin/libzstd.dll \
+        /mingw64/bin/tcl86.dll \
+        /mingw64/bin/tk86.dll \
+        /mingw64/bin/zlib1.dll \
+        pkg/bin/
+        
+        cp -r /mingw64/lib/tcl8.6 pkg/lib/
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: gtkwave
+        path: |
+          pkg/
